@@ -96,16 +96,23 @@ bool FileDirectory::deleteFile(char *filename) {
 bool FileDirectory::write(char filename[], int numberBytes, char fileData[], int year, int month, int day, int hour, int minute, int second)
 {
     unsigned char record[32] = { 0 };
-    unsigned short int i, j, sectorAddress, unused[256], filesec[256], time, date;
+    unsigned short int i, j, sectorAddress, unused[256], time, date;
     //Generate FAT Record template
+    date = 0;
+    time = 0;
+
     record[31] = numberBytes >> 24;
     record[30] = numberBytes  >> 16;
     record[29] = numberBytes >> 8;
     record[28] = numberBytes;
-    date = (year - 1980) << 9 + month << 5 + day;
+    date += ((year - 1980) << 9);
+    date += month << 5;
+    date += day;
     record[25] = date >> 8;
     record[24] = date;
-    time = (hour << 11) + (minute << 5) + (second / 2);
+    time += (hour << 11);
+    time += (minute << 5);
+    time += (second / 2);
     record[23] = time >> 8;
     record[22] = time;
     for (int l = 0; l < 8; l++)
@@ -198,7 +205,33 @@ void FileDirectory::printDirectory() {
                 filename[j] = fileDirectory[i][j];
 
             }
-            std::cout << filename << ":" << std::endl;
+            unsigned int fileSz, hour, minute, second, year, month, day, time, date;
+            time = 0;
+            date = 0;
+            fileSz = 0;
+
+            date += fileDirectory[i][25] << 8;
+            date += fileDirectory[i][24];
+
+            day = (date & 0x1F);
+            month = ((date >> 5) & 0xF);
+            year = ((date >> 9) & 0x7F) + 1980;
+
+            time += fileDirectory[i][23] << 8;
+            time += fileDirectory[i][22];
+
+            second = (time & 0x1F)*2;
+            minute = ((time >> 5) & 0x3F);
+            hour = ((time >> 11) & 0x1F);
+
+
+            fileSz += fileDirectory[i][31] << 24;
+            fileSz += fileDirectory[i][30] << 16;
+            fileSz += fileDirectory[i][29] << 8;
+            fileSz += fileDirectory[i][28];
+
+            std::cout << filename << " - " << month << "/" << day << "/" << year << " - " << hour << ":" << minute << ":" << second << std::endl;
+            std::cout << fileSz << " bytes" << std::endl;
             this->printClusters(filename);
         }
 

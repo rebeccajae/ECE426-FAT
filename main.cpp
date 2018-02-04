@@ -23,7 +23,7 @@ int main() {
     bool createF2 = fd->create(file2name, 200);
     if(createF2){
         std::cout << "Writing file2" << std::endl;
-        fd->write(file2name, 200, file2, 2018-1980, 2, 1, 0, 0, 0);
+        fd->write(file2name, 200, file2, 2018, 2, 1, 0, 0, 0);
     }else{
         std::cout << "Create file2 failed." << std::endl;
     }
@@ -31,7 +31,7 @@ int main() {
     bool createF3 = fd->create(file3name, 300);
     if(createF3){
         std::cout << "Writing file1" << std::endl;
-        fd->write(file3name, 300, file3, 2018-1980, 2, 1, 0, 0, 0);
+        fd->write(file3name, 300, file3, 2018, 2, 1, 0, 0, 0);
     }else{
         std::cout << "Create file3 failed." << std::endl;
     }
@@ -39,7 +39,7 @@ int main() {
     bool createF4 = fd->create(file4name, 500);
     if(createF4){
         std::cout << "Writing file4" << std::endl;
-        fd->write(file4name, 500, file4, 2018-1980, 2, 1, 0, 0, 0);
+        fd->write(file4name, 500, file4, 2018, 2, 1, 0, 0, 0);
     }else{
         std::cout << "Create file4 failed." << std::endl;
     }
@@ -54,11 +54,11 @@ int main() {
     bool createF4_2 = fd->create(file4name, 500);
     if(createF4_2){
         std::cout << "Writing file4" << std::endl;
-        fd->write(file4name, 500, file4, 2018-1980, 2, 1, 0, 0, 0);
+        fd->write(file4name, 500, file4, 2018, 2, 1, 0, 0, 0);
     }else{
         std::cout << "Create file4 failed." << std::endl;
     }
-fd->printDirectory();
+    fd->printDirectory();
 
     return 0;
 }
