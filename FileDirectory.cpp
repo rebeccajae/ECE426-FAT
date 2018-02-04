@@ -15,9 +15,17 @@
  * Create a new instance of FileDirectory and initialize all FAT entries to 0
  */
 FileDirectory::FileDirectory() {
-    //Initialize all entries in FAT16 to zero.
+    //Initialize all entries in FAT16 to zero. Blank all storage arrays.
     for (int i = 0; i < 256; i++) {
         FAT16[i] = ZERO_UNUSED; // Set to zero, unused
+    }
+    for (int i = 0; i < 1024; i++) {
+        data[i] = 0x0; // Set to zero, unused
+    }
+    for (int i = 0; i < 4; i++)
+        for (int j = 0; j < 32; j++) {
+            fileDirectory[i][j] = 0x0;
+        }
     }
 }
 
@@ -67,7 +75,7 @@ bool FileDirectory::create(char *filename, int numberBytes) {
  * @return true if successfully deleted file, false if the file does not exist
  */
 bool FileDirectory::deleteFile(char *filename) {
-    unsigned short int firstSector;
+    unsigned short int firstSector = 0;
     for (int i = 0; i < 4; i++) {
         for (int j = 0; j < 8; j++) {
             //Check if file exists
@@ -104,7 +112,7 @@ bool FileDirectory::deleteFile(char *filename) {
 bool FileDirectory::read(char *filename, char *fileData) {
     unsigned short int firstSector, sectors[256], r;
     firstSector = 0;
-    unsigned int fileSz;
+    unsigned int fileSz = 0;
     for (int i = 0; i < 4; i++) {
         for (int j = 0; j < 8; j++)
         {
@@ -166,7 +174,6 @@ bool FileDirectory::write(char filename[], int numberBytes, char fileData[], int
     //Generate FAT Record template
     date = 0;
     time = 0;
-
     record[31] = numberBytes >> 24;
     record[30] = numberBytes  >> 16;
     record[29] = numberBytes >> 8;
@@ -201,7 +208,7 @@ bool FileDirectory::write(char filename[], int numberBytes, char fileData[], int
     //Write temp record into fileDirectory
     for (int k = 0; k < 4; k++) {
         if(fileDirectory[k][0] == 0){
-            for (int l = 0; l < 32; ++l) {
+            for (int l = 0; l < 32; ++l) {tha
                 fileDirectory[k][l] = record[l];
             }
             break;
@@ -240,7 +247,7 @@ bool FileDirectory::write(char filename[], int numberBytes, char fileData[], int
 //TODO: the project requirement says use type void, but also mentions returns.
 void FileDirectory::printClusters(char filename[])
 {
-    unsigned short int firstSector;
+    unsigned short int firstSector = 0;
     for (int i = 0; i < 4; i++) {
         for (int j = 0; j < 8; j++)
         {
