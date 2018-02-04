@@ -194,7 +194,44 @@ void FileDirectory::printClusters(char filename[])
 }
 
 bool FileDirectory::read(char *filename, char *fileData) {
-    return false;
+    unsigned short int firstSector, sectors[256], r;
+    firstSector = 0;
+    unsigned int fileSz;
+    for (int i = 0; i < 4; i++) {
+        for (int j = 0; j < 8; j++)
+        {
+            if (fileDirectory[i][j] != filename[j]) {
+                break;
+            }
+            if (j == 7) {
+                //There is a file!
+                firstSector = fileDirectory[i][27] << 8 | fileDirectory[i][26];
+                fileSz += fileDirectory[i][31] << 24;
+                fileSz += fileDirectory[i][30] << 16;
+                fileSz += fileDirectory[i][29] << 8;
+                fileSz += fileDirectory[i][28];
+            }
+        }
+        if(i == 3 && firstSector == 0){
+            return false;
+        }
+    }
+    r = 0;
+    if(firstSector != 0) {
+        unsigned short int next_sector = firstSector;
+        while (next_sector < 0xFFF8) {
+            sectors[r++] = next_sector;
+            next_sector = FAT16[next_sector];
+
+        }
+        for (int i = 0; i < fileSz; ++i) {
+            unsigned short int currentSector = sectors[i/4];
+            int dataIdx = currentSector*4 + i%4;
+            fileData[i] = data[dataIdx];
+
+        }
+    }
+    return true;
 }
 
 void FileDirectory::printDirectory() {
@@ -274,10 +311,4 @@ void FileDirectory::printData(char *filename) {
         std::cout << "EOF" << std::endl;
     }
 }
-
-
-
-
-
-
 
