@@ -15,14 +15,14 @@
  * Create a new instance of FileDirectory and initialize all FAT entries to 0
  */
 FileDirectory::FileDirectory() {
-    //Initialize all entries in FAT16 to zero. Blank all storage arrays.
+    //Initialize all entries in FAT16 to zero. Blank all storage arrays.?
     for (int i = 0; i < 256; i++) {
         FAT16[i] = ZERO_UNUSED; // Set to zero, unused
     }
     for (int i = 0; i < 1024; i++) {
         data[i] = 0x0; // Set to zero, unused
     }
-    for (int i = 0; i < 4; i++)
+    for (int i = 0; i < 4; i++){
         for (int j = 0; j < 32; j++) {
             fileDirectory[i][j] = 0x0;
         }
@@ -208,7 +208,7 @@ bool FileDirectory::write(char filename[], int numberBytes, char fileData[], int
     //Write temp record into fileDirectory
     for (int k = 0; k < 4; k++) {
         if(fileDirectory[k][0] == 0){
-            for (int l = 0; l < 32; ++l) {tha
+            for (int l = 0; l < 32; ++l) {
                 fileDirectory[k][l] = record[l];
             }
             break;
