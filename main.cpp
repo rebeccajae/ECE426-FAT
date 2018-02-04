@@ -18,8 +18,6 @@ int main() {
     }else{
         std::cout << "Create file1 failed." << std::endl;
     }
-    fd->printData(file1name);
-
     bool createF2 = fd->create(file2name, 200);
     if(createF2){
         std::cout << "Writing file2" << std::endl;

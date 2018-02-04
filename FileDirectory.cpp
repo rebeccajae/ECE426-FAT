@@ -51,7 +51,7 @@ bool FileDirectory::create(char *filename, int numberBytes) {
             //We have space for it!
             return true;
         }else{
-            //No space in the FAT.
+            //Not enough space in the FAT.
             return false;
         }
     }else{
@@ -70,19 +70,21 @@ bool FileDirectory::deleteFile(char *filename) {
     unsigned short int firstSector;
     for (int i = 0; i < 4; i++) {
         for (int j = 0; j < 8; j++) {
+            //Check if file exists
             if (fileDirectory[i][j] != filename[j]) {
                 break;
             }
             if (j == 7) {
                 //There is a file!
                 //Delete it.
-                fileDirectory[i][0] = 0x0; // Change first character of name to 0. (NUL)
+                fileDirectory[i][0] = 0x0; // Change first character of name to 0
                 firstSector = fileDirectory[i][27] << 8 | fileDirectory[i][26];
                 unsigned short int next_sector = firstSector;
                 unsigned short int temp;
+                //Change all entries of its clusters to unused.
                 while (next_sector != LAST_CLUSTER) {
                     temp = FAT16[next_sector];
-                    FAT16[next_sector] = 0x01;
+                    FAT16[next_sector] = ZERO_USED;
                     next_sector = temp;
 
                 }
@@ -93,6 +95,70 @@ bool FileDirectory::deleteFile(char *filename) {
     return false;
 }
 
+/**
+ * Reads a file specified by filename into the array pointed to by fileData.
+ * @param filename The filename to read
+ * @param fileData An array to store the read data
+ * @return true on successful read, false if file doesn't exist.
+ */
+bool FileDirectory::read(char *filename, char *fileData) {
+    unsigned short int firstSector, sectors[256], r;
+    firstSector = 0;
+    unsigned int fileSz;
+    for (int i = 0; i < 4; i++) {
+        for (int j = 0; j < 8; j++)
+        {
+            //Check if file exists
+            if (fileDirectory[i][j] != filename[j]) {
+                break;
+            }
+            if (j == 7) {
+                //There is a file! Get the information from the fileDirectory.
+                //Get first cluster address
+                firstSector = fileDirectory[i][27] << 8 | fileDirectory[i][26];
+                //Read file size
+                fileSz += fileDirectory[i][31] << 24;
+                fileSz += fileDirectory[i][30] << 16;
+                fileSz += fileDirectory[i][29] << 8;
+                fileSz += fileDirectory[i][28];
+            }
+        }
+        if(i == 3 && firstSector == 0){
+            return false; //File doesn't exist.
+        }
+    }
+    r = 0;
+    //Use the cluster addresses to read the data from the disk.
+    if(firstSector != 0) {
+        unsigned short int next_sector = firstSector;
+        while (next_sector != LAST_CLUSTER) {
+            sectors[r++] = next_sector;
+            next_sector = FAT16[next_sector];
+
+        }
+        for (int i = 0; i < fileSz; ++i) {
+            unsigned short int currentSector = sectors[i/4];
+            int dataIdx = currentSector*4 + i%4;
+            fileData[i] = data[dataIdx];
+
+        }
+    }
+    return true;
+}
+
+/**
+ * Writes a file to the directory. This does not sanity-check file writes, you should sanity-check using create first.
+ * @param filename Name of the file to write
+ * @param numberBytes Size of the file to write
+ * @param fileData byte array of the file to write
+ * @param year Year modified
+ * @param month Month Modified
+ * @param day Day Modified
+ * @param hour Hour Modified
+ * @param minute Minute Modified
+ * @param second Second Modified
+ * @return true on successful write.
+ */
 bool FileDirectory::write(char filename[], int numberBytes, char fileData[], int year, int month, int day, int hour, int minute, int second)
 {
     unsigned char record[32] = { 0 };
@@ -120,7 +186,7 @@ bool FileDirectory::write(char filename[], int numberBytes, char fileData[], int
 
         record[l] = filename[l];
     }
-
+    //Find the first unused entry in the FAT.
     for (i = 2; i < 256; i++)
     {
         if (FAT16[i] == ZERO_USED || FAT16[i] == ZERO_UNUSED) {
@@ -132,6 +198,7 @@ bool FileDirectory::write(char filename[], int numberBytes, char fileData[], int
     record[27] = sectorAddress >> 8;
     record[26] = sectorAddress;
 
+    //Write temp record into fileDirectory
     for (int k = 0; k < 4; k++) {
         if(fileDirectory[k][0] == 0){
             for (int l = 0; l < 32; ++l) {
@@ -141,21 +208,21 @@ bool FileDirectory::write(char filename[], int numberBytes, char fileData[], int
         }
     }
     j = 1;
+    //Find and traverse all unused clusters.
     unused[0] = i;
     for (i = unused[0]+1; i < 256 && j*CLUSTER_SIZE <= numberBytes; i++) {
         if (FAT16[i] == ZERO_USED || FAT16[i] == ZERO_UNUSED) {
             unused[j++] = i;
         }
     }
-
+    //Link the clusters you want to use
     for (i = 0; i < j-2; i++) {
         FAT16[unused[i]] = unused[i + 1];
     }
-
+    //Set a EOF on the last cluster.
     FAT16[unused[i]] = LAST_CLUSTER;
 
-    //Unused has each sector. Let's traverse and toss em along.
-
+    //Write data into the data array
     for (int m = 0; m <= i+1; ++m) {
         int currentSector = unused[m];
         for (int k = 0; k < 4; ++k) {
@@ -165,23 +232,30 @@ bool FileDirectory::write(char filename[], int numberBytes, char fileData[], int
     return true;
 }
 
+/**
+ * Prints all clusters occupied by a file specified in filename
+ * @param filename The filename to print clusters of
+ */
 
+//TODO: the project requirement says use type void, but also mentions returns.
 void FileDirectory::printClusters(char filename[])
 {
     unsigned short int firstSector;
     for (int i = 0; i < 4; i++) {
         for (int j = 0; j < 8; j++)
         {
+            //Check if file exists in directory
             if (fileDirectory[i][j] != filename[j]) {
                 break;
             }
             if (j == 7) {
-                //There is a file!
+                //There is a file! Get the first sector information from the directory.
                 firstSector = fileDirectory[i][27] << 8 | fileDirectory[i][26];
 
             }
         }
     }
+    //Iterate through the sectors and print them.
     if(firstSector != 0) {
         unsigned short int next_sector = firstSector;
         while (next_sector < 0xFFF8) {
@@ -193,55 +267,21 @@ void FileDirectory::printClusters(char filename[])
     }
 }
 
-bool FileDirectory::read(char *filename, char *fileData) {
-    unsigned short int firstSector, sectors[256], r;
-    firstSector = 0;
-    unsigned int fileSz;
-    for (int i = 0; i < 4; i++) {
-        for (int j = 0; j < 8; j++)
-        {
-            if (fileDirectory[i][j] != filename[j]) {
-                break;
-            }
-            if (j == 7) {
-                //There is a file!
-                firstSector = fileDirectory[i][27] << 8 | fileDirectory[i][26];
-                fileSz += fileDirectory[i][31] << 24;
-                fileSz += fileDirectory[i][30] << 16;
-                fileSz += fileDirectory[i][29] << 8;
-                fileSz += fileDirectory[i][28];
-            }
-        }
-        if(i == 3 && firstSector == 0){
-            return false;
-        }
-    }
-    r = 0;
-    if(firstSector != 0) {
-        unsigned short int next_sector = firstSector;
-        while (next_sector < 0xFFF8) {
-            sectors[r++] = next_sector;
-            next_sector = FAT16[next_sector];
 
-        }
-        for (int i = 0; i < fileSz; ++i) {
-            unsigned short int currentSector = sectors[i/4];
-            int dataIdx = currentSector*4 + i%4;
-            fileData[i] = data[dataIdx];
 
-        }
-    }
-    return true;
-}
-
+/**
+ * Prints the directory contents of the current object, including filenames, dates modified and cluster information.
+ */
 void FileDirectory::printDirectory() {
     char filename[8];
     for (int i = 0; i < 4; i++) {
         if(fileDirectory[i][0] != 0){
+            //Read one filename from the directory
             for (int j = 0; j < 8; ++j) {
                 filename[j] = fileDirectory[i][j];
 
             }
+            //Get the other information about the file from the directory.
             unsigned int fileSz, hour, minute, second, year, month, day, time, date;
             time = 0;
             date = 0;
@@ -266,7 +306,7 @@ void FileDirectory::printDirectory() {
             fileSz += fileDirectory[i][30] << 16;
             fileSz += fileDirectory[i][29] << 8;
             fileSz += fileDirectory[i][28];
-
+            //Print it
             std::cout << filename << " - " << month << "/" << day << "/" << year << " - " << hour << ":" << minute << ":" << second << std::endl;
             std::cout << fileSz << " bytes" << std::endl;
             this->printClusters(filename);
@@ -275,17 +315,22 @@ void FileDirectory::printDirectory() {
     }
 }
 
+/**
+ * Prints the data stored within filename
+ * @param filename The filename of interest.
+ */
 void FileDirectory::printData(char *filename) {
     unsigned short int firstSector, sectors[256], r;
     unsigned int fileSz;
     for (int i = 0; i < 4; i++) {
         for (int j = 0; j < 8; j++)
         {
+            //Check if file exists
             if (fileDirectory[i][j] != filename[j]) {
                 break;
             }
             if (j == 7) {
-                //There is a file!
+                //There is a file! Get the size and first cluster
                 firstSector = fileDirectory[i][27] << 8 | fileDirectory[i][26];
                 fileSz += fileDirectory[i][31] << 24;
                 fileSz += fileDirectory[i][30] << 16;
@@ -295,9 +340,10 @@ void FileDirectory::printData(char *filename) {
         }
     }
     r = 0;
+    //Iterate through the sectors and print the data out.
     if(firstSector != 0) {
         unsigned short int next_sector = firstSector;
-        while (next_sector < 0xFFF8) {
+        while (next_sector != LAST_CLUSTER) {
             sectors[r++] = next_sector;
             next_sector = FAT16[next_sector];
 
