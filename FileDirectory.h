@@ -17,4 +17,5 @@ public:
     void printClusters(char filename[]);
     void printDirectory();
     void printData(char filename[]);
+    bool compare(char file1[], char file2[]);
 };

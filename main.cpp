@@ -56,7 +56,24 @@ int main() {
     }else{
         std::cout << "Create file4 failed." << std::endl;
     }
+
     fd->printDirectory();
+
+    std::cout << "Testing compare function" << std::endl;
+    createF2 = fd->create(file2name, 40);
+    if(createF2){
+        std::cout << "Writing file1 data as file2" << std::endl;
+        fd->write(file2name, 40, file1, 2018, 2, 1, 0, 0, 0);
+    }else{
+        std::cout << "Create file2 failed." << std::endl;
+    }
+    fd->printDirectory();
+
+    if(fd->compare(file1name,file2name)){
+        std::cout << "File named file1 is identical to file2" << std::endl;
+    }else{
+        std::cout << "File named file1 is not identical to file2" << std::endl;
+    }
 
     return 0;
 }

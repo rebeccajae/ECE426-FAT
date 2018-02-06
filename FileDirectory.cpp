@@ -169,6 +169,10 @@ bool FileDirectory::read(char *filename, char *fileData) {
  */
 bool FileDirectory::write(char filename[], int numberBytes, char fileData[], int year, int month, int day, int hour, int minute, int second)
 {
+    if(!this->create(filename,numberBytes)){
+        return false;
+    }
+
     unsigned char record[32] = { 0 };
     unsigned short int i, j, sectorAddress, unused[256], time, date;
     //Generate FAT Record template
@@ -364,4 +368,24 @@ void FileDirectory::printData(char *filename) {
         std::cout << "EOF" << std::endl;
     }
 }
+
+bool FileDirectory::compare(char *file1, char *file2) {
+    //read both files into memory with read
+    char file1d[1024] = {0}, file2d[1024]={0};
+    bool R1 = this->read(file1, file1d);
+    bool R2 = this->read(file2, file2d);
+    //Loop through both, any discrepancies, they're not the same
+    if(R1 && R2){
+        for (int i = 0; i < 1024; ++i) {
+            if(file2d[i] != file1d[i]){
+                return false;
+            }
+        }
+        return true;
+    }else{
+        return false;
+    }
+}
+
+
 
